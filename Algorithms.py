@@ -8,6 +8,12 @@ class Packet:
         self.header_id = header_id
         self.size = size #time it takes to process a packet
         self.prio = prio #priority class given to the packet
+    
+    def __cmp__(self, other):
+        return cmp(self.prio, other.prio)
+        
+def sort_packet_buffer(packet_buffer):
+    pass
 
 #constructor class fifo (array of packets, delay)
 class FIFO:
@@ -51,12 +57,14 @@ class PriorityQueue:
         curr_time = 0
         start_time = 0
         processing_time = 0
-        #track arrival time of every packet = header_id * delay
         while packet_count < len(self.packets) or len(packet_buffer) > 0: #while there are still packets incoming
             #add in a packet to the buffer when it arrives
             if curr_time == packet_count * self.delay and packet_count < len(self.packets):
                 packet_buffer.append(self.packets[packet_count])
-                
+                #resort the priority queue, ignoring the first element
+                end_of_buffer = len(packet_buffer)
+                if end_of_buffer > 1:
+                    packet_buffer[1:end_of_buffer] = sorted(packet_buffer[1:end_of_buffer],key=lambda x: x.prio)
                 packet_ID = packets[packet_count].header_id
                 packet_size = packets[packet_count].size
                 packet_prio = packets[packet_count].prio
@@ -101,14 +109,14 @@ class RoundRobin:
         
 
 #testing area
-p1 = Packet(0,4,0)
-p2 = Packet(1,7,0)
-p3 = Packet(2,9,0)
-p4 = Packet(3,12,0)
-p5 = Packet(4,3,0)
+p1 = Packet(0,4,3)
+p2 = Packet(1,7,2)
+p3 = Packet(2,9,1)
+p4 = Packet(3,12,5)
+p5 = Packet(4,3,2)
 packets = [p1, p2, p3, p4, p5]
-myAlg = FIFO(packets, 5)
+myAlg = FIFO(packets, 1)
 myAlg.scheduler()
 
-prioAlg = PriorityQueue(packets, 5)
+prioAlg = PriorityQueue(packets, 1)
 prioAlg.scheduler();
