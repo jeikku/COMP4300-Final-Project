@@ -4,10 +4,11 @@
 #
 
 class Packet:
-    def __init__(self, header_id, size, prio):
+    def __init__(self, header_id, size, prio, header_class):
         self.header_id = header_id
         self.size = size #time it takes to process a packet
         self.prio = prio #priority class given to the packet
+        self.header_class = header_class #header classification to sort the packet in a RR
     
     def __cmp__(self, other):
         return cmp(self.prio, other.prio)
@@ -57,7 +58,8 @@ class PriorityQueue:
         curr_time = 0
         start_time = 0
         processing_time = 0
-        while packet_count < len(self.packets) or len(packet_buffer) > 0: #while there are still packets incoming
+        #while there are still packets incoming and the buffer is not empty
+        while packet_count < len(self.packets) or len(packet_buffer) > 0: 
             #add in a packet to the buffer when it arrives
             if curr_time == packet_count * self.delay and packet_count < len(self.packets):
                 packet_buffer.append(self.packets[packet_count])
@@ -103,20 +105,117 @@ class RoundRobin:
         self.packets = packets
         self.delay = delay
 
+    def cycle_3(self, packet_1,packet_2,packet_3):
+        quantum = 3
+        notDone = 1
+        cycles = 0
+        size_1 = packet_1.size
+        size_2 = packet_2.size
+        size_3 = packet_3.size
+        while size_1 > 0 or size_2 > 0 or size_3 > 0:
+            size_1 -= quantum
+            size_2 -= quantum
+            size_3 -= quantum
+            cycles += 1
+        return cycles * quantum
+
+    def cycle_2(self, packet_1,packet_2):
+        quantum = 3
+        notDone = 1
+        cycles = 0
+        size_1 = packet_1.size
+        size_2 = packet_2.size
+        while size_1 > 0 or size_2 > 0:
+            size_1 -= quantum
+            size_2 -= quantum
+            cycles += 1
+        return cycles * quantum
+
+    def cycle_1(self, packet_1):
+        quantum = 3
+        notDone = 1
+        cycles = 0
+        size_1 = packet_1.size
+        while size_1 > 0:
+            size_1 -= quantum
+            cycles += 1
+        return cycles * quantum
+
     def scheduler(self):
-        pass
-        #take the ordered array of packets and put them through the algorithm.
+        #initialize buffers for cycling
+        buffer_1 = []
+        buffer_2 = []
+        buffer_3 = []
+        cycle_time = 0
+        #create a cycler which grabs the top packet in all 3 buffers and moves it into a link
+        curr_time = 0
+        packet_count = 0
+        doing_work = False
+        remaining_packets = len(self.packets)
         
+        while len(buffer_1) > 0 or len(buffer_2) > 0 or len(buffer_3) > 0 or remaining_packets > 0:
+            if curr_time == packet_count * self.delay and packet_count < len(self.packets):
+                #distribute packets into buffers for processing
+                if self.packets[packet_count].header_class == 1:
+                    buffer_1.append(self.packets[packet_count])
+                elif self.packets[packet_count].header_class == 2:
+                    buffer_2.append(self.packets[packet_count])
+                else:
+                    buffer_3.append(self.packets[packet_count])
+                
+                packet_count += 1
+                remaining_packets -= 1
+                #if cycler is not running, queue up a new cycle
+            if not doing_work:
+                if len(buffer_1) > 0 and len(buffer_2) > 0 and len(buffer_3) > 0:
+                    cycle_time = self.cycle_3(buffer_1[0],buffer_2[0],buffer_3[0])
+                elif len(buffer_1) > 0 and len(buffer_2) > 0:
+                    cycle_time = self.cycle_2(buffer_1[0],buffer_2[0])
+                elif len(buffer_2) > 0 and len(buffer_3) > 0:
+                    cycle_time = self.cycle_2(buffer_2[0],buffer_3[0])
+                elif len(buffer_1) > 0 and len(buffer_3) > 0:
+                    ctcle_time = self.cycle_2(buffer_1[0],buffer_3[0])
+                elif len(buffer_1) > 0:
+                    cycle_time = self.cycle_1(buffer_1[0])
+                elif len(buffer_2) > 0:
+                    cycle_time = self.cycle_1(buffer_2[0])
+                elif len(buffer_3) > 0:
+                    cycle_time = self.cycle_1(buffer_3[0])
+                
+                print("Buffer lengths: ")
+                print("Buffer 1: " + str(len(buffer_1)))
+                print("Buffer 2: " + str(len(buffer_2)))
+                print("Buffer 3: " + str(len(buffer_3)))
+                print("Total time required to process the link packets in cycler: " + str(cycle_time))
+                print("---Total elapsed time: " + str(curr_time) + "---")
+                print("\n")
+                if len(buffer_1) > 0:
+                    buffer_1.pop(0)
+                if len(buffer_2) > 0:
+                    buffer_2.pop(0)
+                if len(buffer_3) > 0:
+                    buffer_3.pop(0)
+
+                doing_work = True
+            else: 
+                cycle_time -= 1
+            if cycle_time == 0:
+                doing_work = False
+            
+            curr_time += 1        
 
 #testing area
-p1 = Packet(0,4,3)
-p2 = Packet(1,7,2)
-p3 = Packet(2,9,1)
-p4 = Packet(3,12,5)
-p5 = Packet(4,3,2)
+p1 = Packet(0,4,3, 1)
+p2 = Packet(1,7,2, 1)
+p3 = Packet(2,9,1, 2)
+p4 = Packet(3,12,5, 3)
+p5 = Packet(4,3,2, 1)
 packets = [p1, p2, p3, p4, p5]
-myAlg = FIFO(packets, 1)
-myAlg.scheduler()
+fifoAlg = FIFO(packets, 1)
+fifoAlg.scheduler()
 
 prioAlg = PriorityQueue(packets, 1)
 prioAlg.scheduler();
+
+round_robin_alg = RoundRobin(packets, 1)
+round_robin_alg.scheduler()
