@@ -2,6 +2,12 @@
 # COMP 4300 Final Project - By: Jacob Broggy & Sebastien Pichon
 # File containing all the algorithms
 #
+import random
+
+#constants
+PACKET_ARRAY_SIZE = 10
+PACKET_MAX_SIZE = 30 #maximum size of individual packet
+PACKET_MAX_PRIO = 10 #maximum priority of individual packet
 
 class Packet:
     def __init__(self, header_id, size, prio, header_class):
@@ -13,8 +19,20 @@ class Packet:
     def __cmp__(self, other):
         return cmp(self.prio, other.prio)
         
-def sort_packet_buffer(packet_buffer):
-    pass
+def initialize_packet_array(array_size):
+    packet_array = []
+    for x in range(array_size):
+        packet_id = x
+        #generate random packet attributes
+        packet_size = random.randint(1,PACKET_MAX_SIZE)
+        packet_prio = random.randint(1,PACKET_MAX_PRIO)
+        packet_header_class = random.randint(1,3)
+        #create the packet
+        new_packet = Packet(packet_id, packet_size, packet_prio, packet_header_class)
+        #append it to the array
+        packet_array.append(new_packet)
+    return packet_array
+    
 
 #constructor class fifo (array of packets, delay)
 class FIFO:
@@ -210,7 +228,8 @@ p2 = Packet(1,7,2, 1)
 p3 = Packet(2,9,1, 2)
 p4 = Packet(3,12,5, 3)
 p5 = Packet(4,3,2, 1)
-packets = [p1, p2, p3, p4, p5]
+#packets = [p1, p2, p3, p4, p5]
+packets = initialize_packet_array(PACKET_ARRAY_SIZE)
 fifoAlg = FIFO(packets, 1)
 fifoAlg.scheduler()
 
