@@ -13,12 +13,15 @@
 # - Priority Queue
 #
 import random
+import matplotlib.pyplot as plt
 
 #constants
 PACKET_ARRAY_SIZE = 10 #amount of packets to test
 PACKET_MAX_SIZE = 30 #maximum size of individual packet
 PACKET_MAX_PRIO = 10 #maximum priority of individual packet
-PRINT_OUTPUT = True #boolean which allows you to enable or disable console printing of algorithm output data
+PRINT_OUTPUT = False #boolean which allows you to enable or disable console printing of algorithm output data
+GRAPHING = True #boolean which allows you to enable or disable the display of graphs
+DELAY = 5 #amount of time between packets arriving
 
 #Packet data object class
 class Packet:
@@ -27,6 +30,7 @@ class Packet:
         self.size = size #time it takes to process a packet
         self.prio = prio #priority class given to the packet
         self.header_class = header_class #header classification to sort the packet in a Round Robin alg
+        self.process_time = 0 #used to keep track of how long it took to be processed in the scheduling algorithms
     
     def __cmp__(self, other):
         return cmp(self.prio, other.prio)
@@ -45,7 +49,29 @@ def initialize_packet_array(array_size):
         #append it to the array
         packet_array.append(new_packet)
     return packet_array
-    
+
+#classless functions to build an array of integers from the array of Packet objects for graphing    
+def get_packet_time_array(packet_array):
+    packet_times = []
+    for packet in packet_array:
+        packet_times.append(packet.process_time)
+    return packet_times    
+def get_packet_size_array(packet_array):
+    packet_sizes = []
+    for packet in packet_array:
+        packet_sizes.append(packet.size)
+    return packet_sizes
+def get_packet_prio_array(packet_array):
+    packet_prios = []
+    for packet in packet_array:
+        packet_prios.append(packet.prio)
+    return packet_prios
+def get_packet_header_array(packet_array):
+    packet_headers = []
+    for packet in packet_array:
+        packet_headers.append(packet.header_class)
+    return packet_headers
+
 #FIFO class which implements the First In First Out algorithm
 class FIFO:
     def __init__(self, packets, delay):
@@ -65,7 +91,6 @@ class FIFO:
             if wait_time < 0:
                 wait_time = 0
             completion_time = arrival_time + packet.size + wait_time
-            packet_wait_time.append(completion_time-arrival_time)
             prev_completion_time = completion_time
             count += 1
 
@@ -76,6 +101,12 @@ class FIFO:
                 print('Wait Time: ' + str(wait_time))
                 print('Completion Time: ' + str(completion_time))
                 print('Packet Total Processing Time: ' + str(completion_time-arrival_time) + '\n')
+            
+            #create packet and add it to the array with all relevant info
+            processed_packet = Packet(packet.header_id, packet.size, packet.prio, packet.header_class)
+            processed_packet.process_time = completion_time - arrival_time
+            packet_wait_time.append(processed_packet)
+        return packet_wait_time
 
 class PriorityQueue:
     def __init__(self, packets, delay):
@@ -108,11 +139,11 @@ class PriorityQueue:
                 
             #check if the packet that was being worked on is done
             if doing_work and curr_time - start_time == processing_time:
-                doing_work = False
-                packet_wait_time.append(curr_time - start_time)                
+                doing_work = False               
                 packet_ID = packet_buffer[0].header_id
                 packet_size = packet_buffer[0].size
                 packet_prio = packet_buffer[0].prio
+                packet_header_class = packet_buffer[0].header_class
                 packet_arrival_time = packet_ID * self.delay
                 wait_time = (curr_time - packet_size) - packet_arrival_time
 
@@ -124,13 +155,19 @@ class PriorityQueue:
                     print('Completion Time: ' + str(curr_time))
                     print("Packet Total Processing Time: " + str(curr_time - packet_arrival_time) + "\n")
                 packet_buffer.pop(0)
+                
+                #create packet and add it to the array with all relevant info
+                processed_packet = Packet(packet_ID, packet_size, packet_prio, packet_header_class)
+                processed_packet.process_time = curr_time - packet_arrival_time
+                packet_wait_time.append(processed_packet)
 
             #if its not currently processing a packet and there are packets in the buffer, start processing the next packet
             if not doing_work and len(packet_buffer) > 0:
                 start_time = curr_time
                 processing_time = packet_buffer[0].size
                 doing_work = True
-            curr_time += 1
+            curr_time += 1      
+        return packet_wait_time
           
 #constructor class fifo (array of packets, delay)
 class RoundRobin:
@@ -268,13 +305,51 @@ class RoundRobin:
 packets = initialize_packet_array(PACKET_ARRAY_SIZE)
 
 #FIFO algorithm test
-fifoAlg = FIFO(packets, 1)
-fifoAlg.scheduler()
+fifoAlg = FIFO(packets, DELAY)
+fifo_packets = fifoAlg.scheduler()
 
 #Priority Queue algorithm test
-prioAlg = PriorityQueue(packets, 1)
-prioAlg.scheduler();
+prioAlg = PriorityQueue(packets, DELAY)
+prio_packets = prioAlg.scheduler();
 
 #Round Robin algorithm test
-round_robin_alg = RoundRobin(packets, 1)
+round_robin_alg = RoundRobin(packets, DELAY)
 round_robin_alg.scheduler()
+
+
+#Graphing
+if GRAPHING:
+    #Initial Packet Array
+    initial_sizes = get_packet_size_array(packets)
+    initial_prios = get_packet_prio_array(packets)
+    plt.title("Initial Packet Array")
+    plt.plot(initial_sizes, label="sizes")
+    plt.xlabel("Packets")
+    plt.ylabel("Sizes")
+    plt.show()
+    
+    #FIFO
+    fifo_times = get_packet_time_array(fifo_packets)
+    plt.plot(fifo_times, label="FIFO")
+    plt.title("FIFO processing time")
+    plt.xlabel("Packets")
+    plt.ylabel("Processing Time")
+    plt.show()
+    
+    #Priority Queue
+    prio_times = get_packet_time_array(prio_packets)
+    plt.plot(prio_times, label="PRIO")
+    plt.title("Priority queue processing time")
+    plt.xlabel("Packets")
+    plt.ylabel("Processing Time")
+    plt.show()
+    
+    plt.title("FIFO vs PRIO processing time")
+    plt.plot(fifo_times, label="FIFO")
+    plt.plot(prio_times, label="PRIO")
+    plt.xlabel("Packets")
+    plt.ylabel("Processing Time")
+    plt.legend()
+    plt.show()
+    
+    #Round Robin
