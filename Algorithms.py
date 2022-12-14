@@ -16,12 +16,12 @@ import random
 import matplotlib.pyplot as plt
 
 #constants
-PACKET_ARRAY_SIZE = 10000 #amount of packets to test
+PACKET_ARRAY_SIZE = 1000 #amount of packets to test
 PACKET_MAX_SIZE = 30 #maximum size of individual packet
 PACKET_MAX_PRIO = 10 #maximum priority of individual packet
 PRINT_OUTPUT = False #boolean which allows you to enable or disable console printing of algorithm output data
 GRAPHING = True #boolean which allows you to enable or disable the display of graphs
-DELAY = 20 #amount of time between packets arriving
+DELAY = 10 #amount of time between packets arriving
 
 #enum for priority queue scheduler
 RANDOM_PRIO = 0
@@ -125,8 +125,12 @@ class PriorityQueue:
     #PriotiyQueue scheduling algorithm
     def scheduler(self, enum):
         if PRINT_OUTPUT:
-            if enum == RANDOM_PRIO: pass
-            print("=-=-=-= PRIO RANDOM =-=-=-=\n")
+            if enum == RANDOM_PRIO:
+                print("=-=-=-= PRIO RANDOM =-=-=-=\n")
+            elif enum == SMALL_PRIO:
+                print("=-=-=-= PRIO SMALLER FIRST =-=-=-=\n")
+            elif enum == LARGE_PRIO:
+                print("=-=-=-= PRIO LARGER FIRST =-=-=-=\n")
         packet_wait_time = []
         doing_work = False
         packet_buffer = [] 
@@ -143,7 +147,12 @@ class PriorityQueue:
                 #re-sort the priority queue, ignoring the first element
                 end_of_buffer = len(packet_buffer)
                 if end_of_buffer > 1:
-                    packet_buffer[1:end_of_buffer] = sorted(packet_buffer[1:end_of_buffer],key=lambda x: x.prio)
+                    if enum == RANDOM_PRIO: #sort by priority class
+                        packet_buffer[1:end_of_buffer] = sorted(packet_buffer[1:end_of_buffer],key=lambda x: x.prio)
+                    elif enum == SMALL_PRIO: #sort by size, smallest first
+                        packet_buffer[1:end_of_buffer] = sorted(packet_buffer[1:end_of_buffer],key=lambda x: x.size)
+                    elif enum == LARGE_PRIO: #sort by size, largest first
+                        packet_buffer[1:end_of_buffer] = sorted(packet_buffer[1:end_of_buffer],key=lambda x: x.size, reverse=True)
                 packet_ID = packets[packet_count].header_id
                 packet_size = packets[packet_count].size
                 packet_prio = packets[packet_count].prio
@@ -179,123 +188,13 @@ class PriorityQueue:
                 processing_time = packet_buffer[0].size
                 doing_work = True
             curr_time += 1
-        print("PRIO (random) COMPLETION TIME = "+str(curr_time))
-        return packet_wait_time
         
-    def scheduler_smaller_first(self):
-        if PRINT_OUTPUT:
-            print("=-=-=-= PRIO SMALLER FIRST =-=-=-=\n")
-        packet_wait_time = []
-        doing_work = False
-        packet_buffer = [] 
-        packet_count = 0
-        curr_time = 0
-        start_time = 0
-        processing_time = 0
-
-        #while there are still packets incoming and the buffer is not empty
-        while packet_count < len(self.packets) or len(packet_buffer) > 0: 
-            #add in a packet to the buffer when it arrives
-            if curr_time == packet_count * self.delay and packet_count < len(self.packets):
-                packet_buffer.append(self.packets[packet_count])
-                #re-sort the priority queue, ignoring the first element
-                end_of_buffer = len(packet_buffer)
-                if end_of_buffer > 1:
-                    packet_buffer[1:end_of_buffer] = sorted(packet_buffer[1:end_of_buffer],key=lambda x: x.size)
-                packet_ID = packets[packet_count].header_id
-                packet_size = packets[packet_count].size
-                packet_prio = packets[packet_count].prio
-                packet_count += 1
-                
-            #check if the packet that was being worked on is done
-            if doing_work and curr_time - start_time == processing_time:
-                doing_work = False               
-                packet_ID = packet_buffer[0].header_id
-                packet_size = packet_buffer[0].size
-                packet_prio = packet_buffer[0].size
-                packet_header_class = packet_buffer[0].header_class
-                packet_arrival_time = packet_ID * self.delay
-                wait_time = (curr_time - packet_size) - packet_arrival_time
-
-                #testing output (if enabled)
-                if PRINT_OUTPUT:
-                    print('---[Packet ' + str(packet_ID) + ' Size:' + str(packet_size) + ' Prio:' + str(packet_prio) + ']---')
-                    print('Arrival Time: ' + str(packet_arrival_time))
-                    print('Wait Time: ' + str(wait_time))
-                    print('Completion Time: ' + str(curr_time))
-                    print("Packet Total Processing Time: " + str(curr_time - packet_arrival_time) + "\n")
-                packet_buffer.pop(0)
-                
-                #create packet and add it to the array with all relevant info
-                processed_packet = Packet(packet_ID, packet_size, packet_prio, packet_header_class)
-                processed_packet.process_time = curr_time - packet_arrival_time
-                packet_wait_time.append(processed_packet)
-
-            #if its not currently processing a packet and there are packets in the buffer, start processing the next packet
-            if not doing_work and len(packet_buffer) > 0:
-                start_time = curr_time
-                processing_time = packet_buffer[0].size
-                doing_work = True
-            curr_time += 1
-        print("PRIO (small first) COMPLETION TIME = "+str(curr_time))
-        return packet_wait_time
-        
-    def scheduler_larger_first(self):
-        if PRINT_OUTPUT:
-            print("=-=-=-= PRIO LARGER FIRST =-=-=-=\n")
-        packet_wait_time = []
-        doing_work = False
-        packet_buffer = [] 
-        packet_count = 0
-        curr_time = 0
-        start_time = 0
-        processing_time = 0
-
-        #while there are still packets incoming and the buffer is not empty
-        while packet_count < len(self.packets) or len(packet_buffer) > 0: 
-            #add in a packet to the buffer when it arrives
-            if curr_time == packet_count * self.delay and packet_count < len(self.packets):
-                packet_buffer.append(self.packets[packet_count])
-                #re-sort the priority queue, ignoring the first element
-                end_of_buffer = len(packet_buffer)
-                if end_of_buffer > 1:
-                    packet_buffer[1:end_of_buffer] = sorted(packet_buffer[1:end_of_buffer],key=lambda x: x.size, reverse=True)
-                packet_ID = packets[packet_count].header_id
-                packet_size = packets[packet_count].size
-                packet_prio = packets[packet_count].prio
-                packet_count += 1
-                
-            #check if the packet that was being worked on is done
-            if doing_work and curr_time - start_time == processing_time:
-                doing_work = False               
-                packet_ID = packet_buffer[0].header_id
-                packet_size = packet_buffer[0].size
-                packet_prio = packet_buffer[0].size
-                packet_header_class = packet_buffer[0].header_class
-                packet_arrival_time = packet_ID * self.delay
-                wait_time = (curr_time - packet_size) - packet_arrival_time
-
-                #testing output (if enabled)
-                if PRINT_OUTPUT:
-                    print('---[Packet ' + str(packet_ID) + ' Size:' + str(packet_size) + ' Prio:' + str(packet_prio) + ']---')
-                    print('Arrival Time: ' + str(packet_arrival_time))
-                    print('Wait Time: ' + str(wait_time))
-                    print('Completion Time: ' + str(curr_time))
-                    print("Packet Total Processing Time: " + str(curr_time - packet_arrival_time) + "\n")
-                packet_buffer.pop(0)
-                
-                #create packet and add it to the array with all relevant info
-                processed_packet = Packet(packet_ID, packet_size, packet_prio, packet_header_class)
-                processed_packet.process_time = curr_time - packet_arrival_time
-                packet_wait_time.append(processed_packet)
-
-            #if its not currently processing a packet and there are packets in the buffer, start processing the next packet
-            if not doing_work and len(packet_buffer) > 0:
-                start_time = curr_time
-                processing_time = packet_buffer[0].size
-                doing_work = True
-            curr_time += 1      
-        print("PRIO (large first) COMPLETION TIME = "+str(curr_time))
+        if enum == RANDOM_PRIO:
+            print("PRIO (random) COMPLETION TIME = "+str(curr_time))
+        elif enum == SMALL_PRIO:
+            print("PRIO (small first) COMPLETION TIME = "+str(curr_time))
+        elif enum == LARGE_PRIO:
+            print("PRIO (large first) COMPLETION TIME = "+str(curr_time))
         return packet_wait_time
           
 #constructor class fifo (array of packets, delay)
@@ -487,9 +386,11 @@ fifo_packets = fifoAlg.scheduler()
 
 #Priority Queue algorithm test
 prioAlg = PriorityQueue(packets, DELAY)
-prio_packets = prioAlg.scheduler(RANDOM_PRIO);
-prio_small = prioAlg.scheduler_smaller_first()
-prio_large = prioAlg.scheduler_larger_first()
+prio_packets = prioAlg.scheduler(RANDOM_PRIO)
+prio_small = prioAlg.scheduler(SMALL_PRIO)
+prio_large = prioAlg.scheduler(LARGE_PRIO)
+'''prio_small = prioAlg.scheduler_smaller_first()
+prio_large = prioAlg.scheduler_larger_first()'''
 
 #Round Robin algorithm test
 round_robin_alg = RoundRobin(packets, DELAY)
