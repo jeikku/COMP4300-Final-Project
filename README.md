@@ -20,3 +20,6 @@
 - Results can be found in the "graph data" folder, sorted by experiment parameters (delay and array size)
 	+ Graphs showing the process time of each individual packet.
 	+ Run times of each scheduling algorithm.
+
+## Youtube Video
+[Comp 4300 Final Project Demo Video](https://youtu.be/wiqyoxXNxT4)
