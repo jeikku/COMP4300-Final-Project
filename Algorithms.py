@@ -539,6 +539,7 @@ if GRAPHING:
     
     #Round Robin
     rr_time = get_packet_time_array(rr_packets)
+    print("total time (RR) = "+str(sum(rr_time)))
     average_rr = sum(rr_time)/len(rr_time)
     plt.plot(rr_time, label = "ROUND ROBIN : "+str(average_rr))
     plt.title("Round Robin processing time")
