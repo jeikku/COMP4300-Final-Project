@@ -16,14 +16,19 @@ import random
 import matplotlib.pyplot as plt
 
 #constants
-PACKET_ARRAY_SIZE = 1000 #amount of packets to test
+PACKET_ARRAY_SIZE = 10000 #amount of packets to test
 PACKET_MAX_SIZE = 30 #maximum size of individual packet
 PACKET_MAX_PRIO = 10 #maximum priority of individual packet
 PRINT_OUTPUT = False #boolean which allows you to enable or disable console printing of algorithm output data
 GRAPHING = True #boolean which allows you to enable or disable the display of graphs
 DELAY = 10 #amount of time between packets arriving
 
-random.seed(10)
+#enum for priority queue scheduler
+RANDOM_PRIO = 0
+SMALL_PRIO = 1
+LARGE_PRIO = 2
+
+#random.seed(10)
 
 #Packet data object class
 class Packet:
@@ -299,60 +304,102 @@ class RoundRobin:
         self.delay = delay
 
     #Link to cycle when all 3 buffers send a packet
-    def cycle_3(self, packet_1,packet_2,packet_3):
+    def cycle_3(self, packet_1,packet_2,packet_3,packet_time,current_time):
         quantum = 3
         notDone = 1
         cycles = 0
-        elapsed_time = 0
+        elapsed_time_1 = 0
+        elapsed_time_2 = 0
+        elapsed_time_3 = 0
         size_1 = packet_1.size
         size_2 = packet_2.size
         size_3 = packet_3.size
 
         while size_1 > 0 or size_2 > 0 or size_3 > 0:
             if size_1 > 0:
-                size_1 -= quantum
-                elapsed_time += quantum
+                if size_1 <= quantum:
+                    elapsed_time_1 += size_1
+                    size_1 -= size_1
+                    packet_1.process_time = (current_time + elapsed_time_1) - packet_1.process_time
+                    packet_time.append(packet_1)
+                else:
+                    size_1 -= quantum
+                    elapsed_time_1 += quantum
             if size_2 > 0:
-                size_2 -= quantum
-                elapsed_time += quantum
+                if size_2 <= quantum:
+                    elapsed_time_2 += size_2
+                    size_2 -= size_2
+                    packet_2.process_time = (current_time + elapsed_time_2) - packet_2.process_time
+                    packet_time.append(packet_2)
+                else:
+                    size_2 -= quantum
+                    elapsed_time_2 += quantum
             if size_3 > 0:
-                size_3 -= quantum
-                elapsed_time += quantum
+                if size_3 <= quantum:
+                    elapsed_time_3 += size_3
+                    size_3 -= size_3
+                    packet_3.process_time = (current_time + elapsed_time_3) - packet_3.process_time
+                    packet_time.append(packet_3)
+                else:
+                    size_3 -= quantum
+                    elapsed_time_3 += quantum
             cycles += 1
+        elapsed_time = [elapsed_time_1,elapsed_time_2,elapsed_time_3]
         return elapsed_time
 
     #Link to cycle when 2 of the 3 buffers send a packet
-    def cycle_2(self, packet_1,packet_2):
+    def cycle_2(self, packet_1,packet_2,packet_time,current_time):
         quantum = 3
         notDone = 1
         cycles = 0
-        elapsed_time = 0
+        elapsed_time_1 = 0
+        elapsed_time_2 = 0
         size_1 = packet_1.size
         size_2 = packet_2.size
 
         while size_1 > 0 or size_2 > 0:
             if size_1 > 0:
-                size_1 -= quantum
-                elapsed_time += quantum
+                if size_1 <= quantum:
+                    elapsed_time_1 += size_1
+                    size_1 -= size_1
+                    packet_1.process_time = (current_time + elapsed_time_1) - packet_1.process_time
+                    packet_time.append(packet_1)
+                else:
+                    size_1 -= quantum
+                    elapsed_time_1 += quantum
             if size_2 > 0:
-                size_2 -= quantum
-                elapsed_time += quantum
+                if size_2 <= quantum:
+                    elapsed_time_2 += size_2
+                    size_2 -= size_2
+                    packet_2.process_time = (current_time + elapsed_time_2) - packet_2.process_time
+                    packet_time.append(packet_2)
+                else:
+                    size_2 -= quantum
+                    elapsed_time_2 += quantum
             cycles += 1
+        elapsed_time = [elapsed_time_1,elapsed_time_2]
         return elapsed_time
 
     #Link to cycle a single packet
-    def cycle_1(self, packet_1):
+    def cycle_1(self, packet_1,packet_time,current_time):
         quantum = 3
         notDone = 1
         cycles = 0
-        elapsed_time = 0
+        elapsed_time_1 = 0
         size_1 = packet_1.size
 
         while size_1 > 0:
             if size_1 > 0:
-                size_1 -= quantum
-                elapsed_time += quantum
+                if size_1 <= quantum:
+                    elapsed_time_1 += size_1
+                    size_1 -= size_1
+                    packet_1.process_time = (current_time + elapsed_time_1) - packet_1.process_time
+                    packet_time.append(packet_1)
+                else:
+                    size_1 -= quantum
+                    elapsed_time_1 += quantum
             cycles += 1
+        elapsed_time = [elapsed_time_1]
         return elapsed_time
 
     #RoundRobin scheduling algorithm
@@ -367,16 +414,20 @@ class RoundRobin:
         packet_count = 0
         doing_work = False
         remaining_packets = len(self.packets)
+        packet_wait_time = []
         
         #run the algorithm until all incoming packets have been dealt with
         while len(buffer_1) > 0 or len(buffer_2) > 0 or len(buffer_3) > 0 or remaining_packets > 0:
             if curr_time == packet_count * self.delay and packet_count < len(self.packets):
                 #distribute packets into buffers for processing
                 if self.packets[packet_count].header_class == 1:
+                    self.packets[packet_count].process_time += curr_time
                     buffer_1.append(self.packets[packet_count])
                 elif self.packets[packet_count].header_class == 2:
+                    self.packets[packet_count].process_time += curr_time
                     buffer_2.append(self.packets[packet_count])
                 else:
+                    self.packets[packet_count].process_time += curr_time
                     buffer_3.append(self.packets[packet_count])
                 
                 packet_count += 1
@@ -384,19 +435,19 @@ class RoundRobin:
             #if cycler is not running, queue up a new cycle
             if not doing_work:
                 if len(buffer_1) > 0 and len(buffer_2) > 0 and len(buffer_3) > 0:
-                    cycle_time = self.cycle_3(buffer_1[0],buffer_2[0],buffer_3[0])
+                    cycle_time = sum(self.cycle_3(buffer_1[0],buffer_2[0],buffer_3[0],packet_wait_time,curr_time))
                 elif len(buffer_1) > 0 and len(buffer_2) > 0:
-                    cycle_time = self.cycle_2(buffer_1[0],buffer_2[0])
+                    cycle_time = sum(self.cycle_2(buffer_1[0],buffer_2[0],packet_wait_time,curr_time))
                 elif len(buffer_2) > 0 and len(buffer_3) > 0:
-                    cycle_time = self.cycle_2(buffer_2[0],buffer_3[0])
+                    cycle_time = sum(self.cycle_2(buffer_2[0],buffer_3[0],packet_wait_time,curr_time))
                 elif len(buffer_1) > 0 and len(buffer_3) > 0:
-                    cycle_time = self.cycle_2(buffer_1[0],buffer_3[0])
+                    cycle_time = sum(self.cycle_2(buffer_1[0],buffer_3[0],packet_wait_time,curr_time))
                 elif len(buffer_1) > 0:
-                    cycle_time = self.cycle_1(buffer_1[0])
+                    cycle_time = sum(self.cycle_1(buffer_1[0],packet_wait_time,curr_time))
                 elif len(buffer_2) > 0:
-                    cycle_time = self.cycle_1(buffer_2[0])
+                    cycle_time = sum(self.cycle_1(buffer_2[0],packet_wait_time,curr_time))
                 elif len(buffer_3) > 0:
-                    cycle_time = self.cycle_1(buffer_3[0])
+                    cycle_time = sum(self.cycle_1(buffer_3[0],packet_wait_time,curr_time))
                 
                 #testing output (if enabled)
                 if PRINT_OUTPUT:
@@ -420,7 +471,9 @@ class RoundRobin:
             if cycle_time == 0:
                 doing_work = False
             
-            curr_time += 1        
+            curr_time += 1
+        print("ROUND ROBIN COMPLETION TIME = "+str(curr_time))
+        return packet_wait_time
 
 #RUN TESTS HERE
 
@@ -439,18 +492,20 @@ prio_large = prioAlg.scheduler_larger_first()
 
 #Round Robin algorithm test
 round_robin_alg = RoundRobin(packets, DELAY)
-round_robin_alg.scheduler()
+rr_packets = round_robin_alg.scheduler()
 
 
 #Graphing
 if GRAPHING:
     #Initial Packet Array
+    '''
     initial_sizes = get_packet_size_array(packets)
     plt.title("Initial Packet Array")
     plt.plot(initial_sizes, label="sizes")
     plt.xlabel("Packet")
     plt.ylabel("Size")
     plt.show()
+    '''
     
     #FIFO
     fifo_times = get_packet_time_array(fifo_packets)
@@ -482,3 +537,11 @@ if GRAPHING:
     plt.show()
     
     #Round Robin
+    rr_time = get_packet_time_array(rr_packets)
+    average_rr = sum(rr_time)/len(rr_time)
+    plt.plot(rr_time, label = "ROUND ROBIN : "+str(average_rr))
+    plt.title("Round Robin processing time")
+    plt.xlabel("Packet")
+    plt.ylabel("Processing Time")
+    plt.legend()
+    plt.show()
