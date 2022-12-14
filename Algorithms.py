@@ -21,14 +21,14 @@ PACKET_MAX_SIZE = 30 #maximum size of individual packet
 PACKET_MAX_PRIO = 10 #maximum priority of individual packet
 PRINT_OUTPUT = False #boolean which allows you to enable or disable console printing of algorithm output data
 GRAPHING = True #boolean which allows you to enable or disable the display of graphs
-DELAY = 10 #amount of time between packets arriving
+DELAY = 20 #amount of time between packets arriving
 
 #enum for priority queue scheduler
 RANDOM_PRIO = 0
 SMALL_PRIO = 1
 LARGE_PRIO = 2
 
-#random.seed(10)
+random.seed(10)
 
 #Packet data object class
 class Packet:
@@ -123,8 +123,9 @@ class PriorityQueue:
         self.delay = delay
     
     #PriotiyQueue scheduling algorithm
-    def scheduler(self):
+    def scheduler(self, enum):
         if PRINT_OUTPUT:
+            if enum == RANDOM_PRIO: pass
             print("=-=-=-= PRIO RANDOM =-=-=-=\n")
         packet_wait_time = []
         doing_work = False
@@ -486,7 +487,7 @@ fifo_packets = fifoAlg.scheduler()
 
 #Priority Queue algorithm test
 prioAlg = PriorityQueue(packets, DELAY)
-prio_packets = prioAlg.scheduler();
+prio_packets = prioAlg.scheduler(RANDOM_PRIO);
 prio_small = prioAlg.scheduler_smaller_first()
 prio_large = prioAlg.scheduler_larger_first()
 
