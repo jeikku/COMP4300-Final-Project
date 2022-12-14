@@ -16,11 +16,11 @@ import random
 import matplotlib.pyplot as plt
 
 #constants
-PACKET_ARRAY_SIZE = 1000 #amount of packets to test
+PACKET_ARRAY_SIZE = 100 #amount of packets to test
 PACKET_MAX_SIZE = 30 #maximum size of individual packet
 PACKET_MAX_PRIO = 10 #maximum priority of individual packet
-PRINT_OUTPUT = False #boolean which allows you to enable or disable console printing of algorithm output data
-GRAPHING = True #boolean which allows you to enable or disable the display of graphs
+PRINT_OUTPUT = True #boolean which allows you to enable or disable console printing of algorithm output data
+GRAPHING = False #boolean which allows you to enable or disable the display of graphs
 DELAY = 10 #amount of time between packets arriving
 
 #enum for priority queue scheduler
